@@ -25,13 +25,13 @@ def gradient_by_half_pi(index_in_parametrized_gates, pqc, obs_list):
         gate_i = pqc.get_gate(i)
         gate_i.update_quantum_state(state)
     exp_val_plus_list = [ obs.get_expectation_value(state) for obs in obs_list]
-    qc.set_parameter(index_in_parametrized_gates, angle - math.pi/2)
+    pqc.set_parameter(index_in_parametrized_gates, angle - math.pi/2)
     for i in range(gate_index, n_gates):
         gate_i = pqc.get_gate(i)
         gate_i.update_quantum_state(copy_state)
     exp_val_minus_list = [ obs.get_expectation_value(copy_state) for obs in obs_list]
     
-    qc.set_parameter(index_in_parametrized_gates, angle)
+    pqc.set_parameter(index_in_parametrized_gates, angle)
     grad_list = [ (p-m)/2 for p, m in zip(exp_val_plus_list, exp_val_minus_list) ]
     return grad_list
 
@@ -62,26 +62,26 @@ def gradient_by_four_terms(index_in_parametrized_gates, pqc, obs_list):
     exp_val_plus1_list = [ obs.get_expectation_value(state) for obs in obs_list]
     # -pi/2
     state = copy_state.copy()
-    qc.set_parameter(index_in_parametrized_gates, angle - math.pi/2)
+    pqc.set_parameter(index_in_parametrized_gates, angle - math.pi/2)
     for i in range(gate_index, n_gates):
         gate_i = pqc.get_gate(i)
         gate_i.update_quantum_state(state)
     exp_val_minus1_list = [ obs.get_expectation_value(state) for obs in obs_list]
     # +1.5pi
     state = copy_state.copy()
-    qc.set_parameter(index_in_parametrized_gates, angle + math.pi * 1.5)
+    pqc.set_parameter(index_in_parametrized_gates, angle + math.pi * 1.5)
     for i in range(gate_index, n_gates):
         gate_i = pqc.get_gate(i)
         gate_i.update_quantum_state(state)
     exp_val_plus2_list = [ obs.get_expectation_value(state) for obs in obs_list]
     # -1.5pi
-    qc.set_parameter(index_in_parametrized_gates, angle - math.pi * 1.5)
+    pqc.set_parameter(index_in_parametrized_gates, angle - math.pi * 1.5)
     for i in range(gate_index, n_gates):
         gate_i = pqc.get_gate(i)
         gate_i.update_quantum_state(copy_state)
     exp_val_minus2_list = [ obs.get_expectation_value(copy_state) for obs in obs_list]
     
-    qc.set_parameter(index_in_parametrized_gates, angle)
+    pqc.set_parameter(index_in_parametrized_gates, angle)
     # calculate gradient
     const_p = (math.sqrt(2)+1)/(4*math.sqrt(2))
     const_m = (math.sqrt(2)-1)/(4*math.sqrt(2))
@@ -99,12 +99,13 @@ def get_gradient(pqc, obs_list):
     '''
         pqc: parametrized quantum circuit
         obs_list: the list of observables
+        return: Jacobian
     '''
     n_parametrized_gate = pqc.get_parameter_count()
     grad_list = []
     for i in range(n_parametrized_gate):
         gate_index = pqc.get_parametric_gate_position(i)
-        control_qubit_list = qc.get_gate(gate_index).get_control_index_list()
+        control_qubit_list = pqc.get_gate(gate_index).get_control_index_list()
         if len(control_qubit_list)==0: # RX, RY, RZ
             tmp_grad = gradient_by_half_pi(i, pqc, obs_list)
         elif len(control_qubit_list)==1: # CRX, CRY, CRZ
