@@ -66,12 +66,14 @@ class PQClayer(torch.nn.Module):
         params: torch.tensor of parameters ( it needs required_grad=True)
         pqc: paramtrized quantum circuit
     '''
-    def __init__(self, params, pqc_f, obs_list):
+    def __init__(self, params, pqc_f, obs_list, use_parameters=True):
         super(PQClayer, self).__init__()
         self.pqc_f = pqc_f
-        self.obs_list = obs_list        
-        self.params = torch.nn.Parameter(params) # Optimizer で、model.parameters() のみ可
-        # self.params = params # Optimizer で、List でパラメータを直接指定のみ可
+        self.obs_list = obs_list
+        if use_parameters==True:
+            self.params = torch.nn.Parameter(params) # Optimizer で、model.parameters() のみ可
+        else:
+            self.params = params # Optimizer で、List でパラメータを直接指定のみ可
 
     def forward(self, input):
         '''
