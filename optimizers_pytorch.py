@@ -93,8 +93,8 @@ class PQClayer(torch.nn.Module):
 # 1. model.parameters も使えるようにする
 # 2. parameter 部分がtorch.tensorの積も許す
 
-torch.random.manual_seed(2)
 if __name__=='__main__':
+    torch.random.manual_seed(2)
     n_output = 1
     n_qubits = 3
     state = QuantumState(n_qubits)
