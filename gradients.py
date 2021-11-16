@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
+
 from qulacs import QuantumState, ParametricQuantumCircuit, Observable
 import math
 
-def gradient_by_half_pi(index_in_parametrized_gates, pqc, obs_list):
+def gradient_by_half_pi(index_in_parametrized_gates, pqc, obs_list, init_state=None):
     '''
         index_in_parametrized_gates: the gate index in the parametrized gates
         pqc: parametrized quantum circuit
@@ -19,6 +21,8 @@ def gradient_by_half_pi(index_in_parametrized_gates, pqc, obs_list):
     angle = pqc.get_parameter(index_in_parametrized_gates)
     pqc.set_parameter(index_in_parametrized_gates, angle + math.pi/2)
     state = QuantumState(n_qubits)
+    if init_state is not None:
+        state.load(init_state)
     for i in range(n_gates):
         if i==gate_index:
             copy_state = state.copy()
@@ -36,7 +40,7 @@ def gradient_by_half_pi(index_in_parametrized_gates, pqc, obs_list):
     return grad_list
 
 # calculating gradients of CRX, CRY, and CRZ
-def gradient_by_four_terms(index_in_parametrized_gates, pqc, obs_list):
+def gradient_by_four_terms(index_in_parametrized_gates, pqc, obs_list, init_state=None):
     '''
         index_in_parametrized_gates: the gate index in the parametrized gates
         pqc: parametrized quantum circuit
@@ -54,6 +58,8 @@ def gradient_by_four_terms(index_in_parametrized_gates, pqc, obs_list):
     # +pi/2
     pqc.set_parameter(index_in_parametrized_gates, angle + math.pi/2)            
     state = QuantumState(n_qubits)
+    if init_state is not None:
+        state.load(init_state)
     for i in range(n_gates):
         if i==gate_index:
             copy_state = state.copy()
@@ -95,11 +101,11 @@ def gradient_by_four_terms(index_in_parametrized_gates, pqc, obs_list):
 
 # 各パラメータに対して、各オブザーバブルに対する勾配
 # 各行は、あるパラメータにおいて各オブザーバブルに対する勾配
-def get_gradient(pqc, obs_list):
+def get_gradient(pqc, obs_list, init_state=None):
     '''
         pqc: parametrized quantum circuit
         obs_list: the list of observables
-        return: Jacobian
+        return: transposed Jacobian
     '''
     n_parametrized_gate = pqc.get_parameter_count()
     grad_list = []
@@ -107,9 +113,9 @@ def get_gradient(pqc, obs_list):
         gate_index = pqc.get_parametric_gate_position(i)
         control_qubit_list = pqc.get_gate(gate_index).get_control_index_list()
         if len(control_qubit_list)==0: # RX, RY, RZ
-            tmp_grad = gradient_by_half_pi(i, pqc, obs_list)
+            tmp_grad = gradient_by_half_pi(i, pqc, obs_list, init_state)
         elif len(control_qubit_list)==1: # CRX, CRY, CRZ
-            tmp_grad = gradient_by_four_terms(i, pqc, obs_list)
+            tmp_grad = gradient_by_four_terms(i, pqc, obs_list, init_state)
         else:
             print("the number of control gate is greater than 1.")
             print("we cannnot calculate the gradient of the gate.")
@@ -119,8 +125,35 @@ def get_gradient(pqc, obs_list):
 
 
 if __name__=='__main__':
-    import pandas as pd
+    '''
+    n_qubits = 2
+    state = QuantumState(n_qubits)
+    qc = ParametricQuantumCircuit(n_qubits)
+    qc.add_H_gate(1)
+    qc.add_X_gate(0)
+    qc.add_parametric_CRX_gate(0, 1, 0.1)
+    qc.add_parametric_CRY_gate(1, 0, 0.1)
+    qc.add_parametric_CRZ_gate(0, 1, 0.1)
+    qc.add_X_gate(0)
+    qc.add_H_gate(1)
+    qc.update_quantum_state(state)
+    print(state.get_vector())
+    import pennylane as qml
+    dev = qml.device("default.qubit", wires=n_qubits)
+    @qml.qnode(dev)
+    def circuit():
+        qml.Hadamard(wires=0)
+        qml.PauliX(wires=1)
+        qml.CRX(-0.1, wires=[1, 0])
+        qml.CRY(-0.1, wires=[0, 1])
+        qml.CRZ(-0.1, wires=[1, 0])
+        qml.PauliX(wires=1)
+        qml.Hadamard(wires=0)
+        return qml.state()
+    print( circuit() )
+    '''
     import numpy as np
+    import pandas as pd
     n_loops = 5
     params = np.random.randn(6*n_loops)
     # params = [0.01*math.pi*i for i in range(6)]
